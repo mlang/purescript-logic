@@ -2,12 +2,14 @@ module Control.Monad.Logic.Class where
 
 import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
 import Control.Apply (lift2)
+import Control.Monad.Except.Trans (ExceptT(..))
 import Control.Monad.Reader.Trans (ReaderT(..))
 import Control.Monad.State.Trans (StateT(..))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Trans (WriterT(..))
 import Control.Plus (class Plus, empty, (<|>))
 import Data.Array ((:), uncons)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Machine.Mealy (MealyT)
 import Data.Machine.Mealy (interleave, msplit) as Mealy
@@ -39,6 +41,11 @@ instance monadLogicArray :: MonadLogic Array where
   msplit = pure <<< map (\{head, tail} -> Tuple head tail) <<< uncons
   interleave xs ys = uncons xs # maybe ys \{head, tail} ->
     head : interleave ys tail
+
+instance monadLogicExceptT :: (Monoid e, MonadLogic m) => MonadLogic (ExceptT e m) where
+  msplit (ExceptT m) = ExceptT $ msplit m <#> maybe
+    (Right Nothing) \(Tuple a m') -> map (\x -> Just (Tuple x (ExceptT m'))) a
+  interleave (ExceptT m1) (ExceptT m2) = ExceptT $ m1 `interleave` m2
 
 instance monadLogicMealyT :: Monad f => MonadLogic (MealyT f s) where
   msplit = Mealy.msplit
