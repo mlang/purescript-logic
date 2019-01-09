@@ -1,5 +1,9 @@
 {
   "name": "purescript-logic",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mlang/purescript-logic.git"
+  },
   "license": "MIT",
   "ignore": [
     "**/.*",
