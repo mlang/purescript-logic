@@ -3,6 +3,7 @@ module Control.Monad.Logic.Class where
 import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
 import Control.Apply (lift2)
 import Control.Monad.Except.Trans (ExceptT(..))
+import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.Reader.Trans (ReaderT(..))
 import Control.Monad.State.Trans (StateT(..))
 import Control.Monad.Trans.Class (lift)
@@ -46,6 +47,11 @@ instance monadLogicExceptT :: (Monoid e, MonadLogic m) => MonadLogic (ExceptT e 
   msplit (ExceptT m) = ExceptT $ msplit m <#> maybe
     (Right Nothing) \(Tuple a m') -> map (\x -> Just (Tuple x (ExceptT m'))) a
   interleave (ExceptT m1) (ExceptT m2) = ExceptT $ m1 `interleave` m2
+
+instance monadLogicMaybeT :: MonadLogic m => MonadLogic (MaybeT m) where
+  msplit (MaybeT m) = MaybeT $ msplit m <#> maybe
+    (Just Nothing) \(Tuple a m') -> map (\x -> Just (Tuple x (MaybeT m'))) a
+  interleave (MaybeT m1) (MaybeT m2) = MaybeT $ m1 `interleave` m2
 
 instance monadLogicMealyT :: Monad f => MonadLogic (MealyT f s) where
   msplit = Mealy.msplit
