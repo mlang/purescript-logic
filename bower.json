@@ -8,7 +8,6 @@
   ],
   "dependencies": {
     "purescript-prelude": "^4.1.0",
-    "purescript-tuples": "^5.1.0",
     "purescript-machines": "^5.1.0",
     "purescript-transformers": "^4.1.0"
   },
