@@ -1,5 +1,6 @@
 {
   "name": "purescript-logic",
+  "license": "MIT",
   "ignore": [
     "**/.*",
     "node_modules",
