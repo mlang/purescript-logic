@@ -9,7 +9,10 @@ import Control.Monad.State.Trans (StateT(..))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Trans (WriterT(..))
 import Control.Plus (class Plus, empty, (<|>))
-import Data.Array ((:), uncons)
+import Data.Array ((:))
+import Data.Array (uncons) as Array
+import Data.CatList (CatList)
+import Data.CatList (cons, singleton, uncons) as CatList
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Machine.Mealy (MealyT)
@@ -39,9 +42,14 @@ lnot :: forall m a. MonadLogic m => m a -> m Unit
 lnot m = ifte (once m) (const empty) (pure unit)
 
 instance monadLogicArray :: MonadLogic Array where
-  msplit = pure <<< map (\{head, tail} -> Tuple head tail) <<< uncons
-  interleave xs ys = uncons xs # maybe ys \{head, tail} ->
+  msplit xs = [Array.uncons xs <#> \{head, tail} -> Tuple head tail]
+  interleave xs ys = Array.uncons xs # maybe ys \{head, tail} ->
     head : interleave ys tail
+
+instance monadLogicCatList :: MonadLogic CatList where
+  msplit = CatList.singleton <<< CatList.uncons
+  interleave xs ys = CatList.uncons xs # maybe ys \(Tuple a xs') ->
+    CatList.cons a $ ys `interleave` xs'
 
 instance monadLogicExceptT :: (Monoid e, MonadLogic m) => MonadLogic (ExceptT e m) where
   msplit (ExceptT m) = ExceptT $ msplit m <#> maybe
