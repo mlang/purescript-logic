@@ -15,7 +15,10 @@
     "purescript-prelude": "^4.1.0",
     "purescript-machines": "^5.1.0",
     "purescript-transformers": "^4.1.0",
-    "purescript-catenable-lists": "^5.0.0"
+    "purescript-catenable-lists": "^5.0.0",
+    "purescript-arrays": "^5.2.0",
+    "purescript-tuples": "^5.1.0",
+    "purescript-maybe": "^4.0.1"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"

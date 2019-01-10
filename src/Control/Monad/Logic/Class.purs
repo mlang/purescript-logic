@@ -8,7 +8,7 @@ import Control.Monad.Reader.Trans (ReaderT(..))
 import Control.Monad.State.Trans (StateT(..))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Trans (WriterT(..))
-import Control.Plus (class Plus, empty, (<|>))
+import Control.MonadPlus (class MonadPlus, empty, (<|>))
 import Data.Array ((:))
 import Data.Array (uncons) as Array
 import Data.CatList (CatList)
@@ -19,7 +19,7 @@ import Data.Machine.Mealy (MealyT)
 import Data.Machine.Mealy (interleave, msplit) as Mealy
 import Data.Tuple (Tuple(..))
 
-class (Monad m, Plus m) <= MonadLogic m where
+class MonadPlus m <= MonadLogic m where
   msplit :: forall a. m a -> m (Maybe (Tuple a (m a)))
   interleave :: forall a. m a -> m a -> m a
 
