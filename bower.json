@@ -21,6 +21,7 @@
     "purescript-maybe": "^4.0.1"
   },
   "devDependencies": {
-    "purescript-psci-support": "^4.0.0"
+    "purescript-psci-support": "^4.0.0",
+    "purescript-benchotron": "^7.0.0"
   }
 }
