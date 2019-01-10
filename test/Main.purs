@@ -4,7 +4,7 @@ import Prelude
 import Benchotron.Core (Benchmark, benchFn, mkBenchmark)
 import Benchotron.UI.Console (runSuite)
 import Control.Monad.Logic.Class
-import Data.Array ((..))
+import Data.Array (reverse, (..))
 import Effect (Effect)
 import Test.QuickCheck (quickCheck, (==?))
 import Test.QuickCheck.Arbitrary (arbitrary)
@@ -25,6 +25,9 @@ main :: Effect Unit
 main = do
   quickCheck \(xs :: Array Unit) -> xs `interleave` [] ==? xs
   quickCheck \(xs :: Array Unit) -> [] `interleave` xs ==? xs
+  quickCheck \(xs :: Array Int) ->
+    let ys = (_ / 2) <$> xs in
+    (reverse xs) `interleave` (reverse ys) ==? reverse (ys `interleave` xs)
   quickCheck \(a :: Int) (b :: Int) -> [a] `interleave` [b] ==? [a,b]
   runSuite [benchInterleaveArray]
 
