@@ -6,9 +6,9 @@ exports.interleaveArray = function(xs) {
     if (ys.length === 0) {
       return xs;
     }
+    var result = [xs[0], ys[0]];
+    var i = 1;
     var n = Math.min(xs.length, ys.length);
-    var i = 0;
-    var result = [];
     while (i < n) {
       result.splice(i*2, 0, xs[i], ys[i]);
       i++;
@@ -16,8 +16,6 @@ exports.interleaveArray = function(xs) {
     if (i === xs.length) {
       return result.concat(ys.slice(i));
     }
-    if (i === ys.length) {
-      return result.concat(xs.slice(i));
-    }
+    return result.concat(xs.slice(i));
   };
 };

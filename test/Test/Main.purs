@@ -61,4 +61,3 @@ main = do
 interleaveArray :: forall a. Array a -> Array a -> Array a
 interleaveArray xs ys = uncons xs # maybe ys \{head, tail} ->
   head : interleaveArray ys tail
-
