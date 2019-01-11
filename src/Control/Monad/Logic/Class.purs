@@ -1,4 +1,7 @@
-module Control.Monad.Logic.Class where
+module Control.Monad.Logic.Class (
+  class MonadLogic, msplit, interleave
+, fairConjunction, (>>-), ifte, once, when, lnot
+) where
 
 import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
 import Control.Apply (lift2)
@@ -9,7 +12,6 @@ import Control.Monad.State.Trans (StateT(..))
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer.Trans (WriterT(..))
 import Control.MonadPlus (class MonadPlus, empty, (<|>))
-import Data.Array ((:))
 import Data.Array (uncons) as Array
 import Data.CatList (CatList)
 import Data.CatList (cons, singleton, uncons) as CatList
@@ -43,8 +45,7 @@ lnot m = ifte (once m) (const empty) (pure unit)
 
 instance monadLogicArray :: MonadLogic Array where
   msplit xs = [Array.uncons xs <#> \{head, tail} -> Tuple head tail]
-  interleave xs ys = Array.uncons xs # maybe ys \{head, tail} ->
-    head : interleave ys tail
+  interleave = interleaveArray
 
 instance monadLogicCatList :: MonadLogic CatList where
   msplit = CatList.singleton <<< CatList.uncons
@@ -80,3 +81,5 @@ instance monadLogicWriterT :: (Monoid w, MonadLogic m) => MonadLogic (WriterT w 
     (Tuple Nothing mempty) \(Tuple (Tuple a w) m') ->
       Tuple (Just (Tuple a (WriterT m'))) w
   interleave (WriterT m1) (WriterT m2) = WriterT $ m1 `interleave` m2
+
+foreign import interleaveArray :: forall a. Array a -> Array a -> Array a
