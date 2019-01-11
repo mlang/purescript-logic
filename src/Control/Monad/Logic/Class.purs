@@ -1,6 +1,7 @@
 module Control.Monad.Logic.Class (
   class MonadLogic, msplit, interleave
 , fairConjunction, (>>-), ifte, once, when, lnot
+, reflect
 ) where
 
 import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
@@ -43,6 +44,9 @@ when m f = ifte m f empty
 lnot :: forall m a. MonadLogic m => m a -> m Unit
 lnot m = ifte (once m) (const empty) (pure unit)
 
+reflect :: forall m a. MonadLogic m => Maybe (Tuple a (m a)) -> m a
+reflect Nothing = empty
+reflect (Just (Tuple a m)) = pure a <|> m
 instance monadLogicArray :: MonadLogic Array where
   msplit xs = [Array.uncons xs <#> \{head, tail} -> Tuple head tail]
   interleave = interleaveArray
