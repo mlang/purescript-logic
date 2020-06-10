@@ -4,9 +4,11 @@ module Control.Monad.Logic.Class (
 , reflect
 ) where
 
-import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
+import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=), bind)
 import Control.Apply (lift2)
 import Control.Monad.Except.Trans (ExceptT(..))
+import Control.Monad.List.Trans (ListT)
+import Control.Monad.List.Trans as ListT
 import Control.Monad.Maybe.Trans (MaybeT(..))
 import Control.Monad.Reader.Trans (ReaderT(..))
 import Control.Monad.State.Trans (StateT(..))
@@ -47,6 +49,7 @@ lnot m = ifte (once m) (const empty) (pure unit)
 reflect :: forall m a. MonadLogic m => Maybe (Tuple a (m a)) -> m a
 reflect Nothing = empty
 reflect (Just (Tuple a m)) = pure a <|> m
+
 instance monadLogicArray :: MonadLogic Array where
   msplit xs = [Array.uncons xs <#> \{head, tail} -> Tuple head tail]
   interleave = interleaveArray
@@ -85,5 +88,15 @@ instance monadLogicWriterT :: (Monoid w, MonadLogic m) => MonadLogic (WriterT w 
     (Tuple Nothing mempty) \(Tuple (Tuple a w) m') ->
       Tuple (Just (Tuple a (WriterT m'))) w
   interleave (WriterT m1) (WriterT m2) = WriterT $ m1 `interleave` m2
+
+instance monadLogicListT :: Monad f => MonadLogic (ListT f) where
+  msplit = lift <<< ListT.uncons
+  interleave xs ys = do
+    x <- msplit xs
+    y <- msplit ys
+    case x, y of
+      Nothing, _ -> ys
+      _, Nothing -> xs
+      Just (Tuple xh xt), Just (Tuple yh yt) -> pure xh <|> pure yh <|> interleave xt yt
 
 foreign import interleaveArray :: forall a. Array a -> Array a -> Array a
