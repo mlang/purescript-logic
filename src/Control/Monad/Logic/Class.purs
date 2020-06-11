@@ -22,25 +22,91 @@ import Data.Machine.Mealy (MealyT)
 import Data.Machine.Mealy (interleave, msplit) as Mealy
 import Data.Tuple (Tuple(..))
 
+-- | The `MonadLogic` type class extends `MonadPlus` with two members
+-- | `msplit` and `interleave`.
+-- |
+-- | Instances must satisfy the following laws in addition to the
+-- | `MonadPlus` laws:
+-- |
+-- | - `msplit empty ≃ pure Nothing`
+-- | - `msplit (alt (pure a) m) ≃ pure (Just (Tuple a m))`
+-- |
+-- | Justification for `interleave` paraphrasing the paper
+-- | [LogicT.pdf](http://okmij.org/ftp/papers/LogicT.pdf):
+-- |
+-- | `alt` satisfies the law:
+-- |
+-- | - `alt x y ≃ x`
+-- |
+-- | whenever `x` is a computation that can backtrack arbitrarily many
+-- | times. This law is undesirable as it compromises completeness. 
+-- | It would be useful to have a new primitive `interleave` such that:
+-- |
+-- | ```purescript
+-- | take 1 do
+-- |   x <- (iterate (_ + 2) 1) `interleave` (pure 10)
+-- |   if even x then pure x else empty
+-- | ```
+-- |
+-- | succeeds with the answer `10`.
 class MonadPlus m <= MonadLogic m where
   msplit :: forall a. m a -> m (Maybe (Tuple a (m a)))
   interleave :: forall a. m a -> m a -> m a
 
+-- | `fairConjunction` interleaves the results such that
+-- | 
+-- | ```purescript
+-- | (a <|> b) >>- k ≃ (a >>- k) <|> (b >>- k)
+-- | ```
+-- | 
+-- | even when `a >>- k` is a computation that can backtrack arbitrarily many times.
 fairConjunction :: forall m a b. MonadLogic m => m a -> (a -> m b) -> m b
 fairConjunction m f =
   msplit m >>= maybe empty \(Tuple a m') -> f a `interleave` (m' >>- f)
 
 infix 6 fairConjunction as >>-
 
+-- | `ifte` is a soft cut (conditional) control structure like if-then-else but for logic computations.
+-- |
+-- | ex:
+-- | ```purescript
+-- | ifte (pure 10 <|> pure 20) (\i -> pure (i + 1)) (pure 30) = pure 11 <|> pure 21
+-- | ```
+-- |
+-- | ```purescript
+-- | ifte empty (\i -> pure (i + 1)) (pure 30) = pure 30
+-- | ```
 ifte :: forall m a b. MonadLogic m => m a -> (a -> m b) -> m b -> m b
 ifte t th el = msplit t >>= maybe el \(Tuple a m) -> th a <|> (m >>- th)
 
+-- | `once` is a pruning control structure returning the first result.
+-- |
+-- | ex:
+-- | ```purescript
+-- | once (pure 10 <|> pure 20 <|> pure 30) = pure 10
+-- | ```
 once :: forall m a. MonadLogic m => m a -> m a
 once m = msplit m >>= maybe empty \(Tuple a _) -> pure a
 
 when :: forall m a b. MonadLogic m => m a -> (a -> m b) -> m b
 when m f = ifte m f empty
 
+-- | `lnot` is a negation as failure control structure short circuiting a computation when another computation succeeds.
+-- |
+-- | ex:
+-- | ```purescript
+-- | do
+-- |   lnot empty
+-- |   pure 10
+-- | = pure 10
+-- | ```
+-- |
+-- | ```purescript
+-- | do
+-- |   lnot (pure 1)
+-- |   pure 10
+-- | = empty
+-- | ```
 lnot :: forall m a. MonadLogic m => m a -> m Unit
 lnot m = ifte (once m) (const empty) (pure unit)
 
