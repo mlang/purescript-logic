@@ -4,6 +4,7 @@ module Control.Monad.Logic.Class
   , interleave
   , fairConjunction
   , (>>-)
+  , (⤜)
   , ifte
   , once
   , when
