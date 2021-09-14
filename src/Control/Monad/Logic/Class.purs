@@ -1,10 +1,16 @@
-module Control.Monad.Logic.Class (
-  class MonadLogic, msplit, interleave
-, fairConjunction, (>>-), ifte, once, when, lnot
-, reflect
-) where
+module Control.Monad.Logic.Class
+  ( class MonadLogic
+  , msplit
+  , interleave
+  , fairConjunction
+  , (>>-)
+  , ifte
+  , once
+  , when
+  , lnot
+  , reflect
+  ) where
 
-import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
 import Control.Apply (lift2)
 import Control.Monad.Except.Trans (ExceptT(..))
 import Control.Monad.Maybe.Trans (MaybeT(..))
@@ -17,10 +23,11 @@ import Data.Array (uncons) as Array
 import Data.CatList (CatList)
 import Data.CatList (cons, singleton, uncons) as CatList
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), maybe)
 import Data.Machine.Mealy (MealyT)
 import Data.Machine.Mealy (interleave, msplit) as Mealy
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
+import Prelude (class Monad, class Monoid, Unit, const, map, mempty, pure, unit, (<<<), ($), (#), (<#>), (>>=))
 
 class MonadPlus m <= MonadLogic m where
   msplit :: forall a. m a -> m (Maybe (Tuple a (m a)))
@@ -31,6 +38,7 @@ fairConjunction m f =
   msplit m >>= maybe empty \(Tuple a m') -> f a `interleave` (m' >>- f)
 
 infix 6 fairConjunction as >>-
+infix 6 fairConjunction as ⤜
 
 ifte :: forall m a b. MonadLogic m => m a -> (a -> m b) -> m b -> m b
 ifte t th el = msplit t >>= maybe el \(Tuple a m) -> th a <|> (m >>- th)
@@ -47,8 +55,9 @@ lnot m = ifte (once m) (const empty) (pure unit)
 reflect :: forall m a. MonadLogic m => Maybe (Tuple a (m a)) -> m a
 reflect Nothing = empty
 reflect (Just (Tuple a m)) = pure a <|> m
+
 instance monadLogicArray :: MonadLogic Array where
-  msplit xs = [Array.uncons xs <#> \{head, tail} -> Tuple head tail]
+  msplit xs = [ Array.uncons xs <#> \{ head, tail } -> Tuple head tail ]
   interleave = interleaveArray
 
 instance monadLogicCatList :: MonadLogic CatList where
@@ -57,13 +66,15 @@ instance monadLogicCatList :: MonadLogic CatList where
     CatList.cons a $ ys `interleave` xs'
 
 instance monadLogicExceptT :: (Monoid e, MonadLogic m) => MonadLogic (ExceptT e m) where
-  msplit (ExceptT m) = ExceptT $ msplit m <#> maybe
-    (Right Nothing) \(Tuple a m') -> map (\x -> Just (Tuple x (ExceptT m'))) a
+  msplit (ExceptT m) = ExceptT $ msplit m <#>
+    maybe (Right Nothing) \(Tuple a m') ->
+      map (\x -> Just (Tuple x (ExceptT m'))) a
   interleave (ExceptT m1) (ExceptT m2) = ExceptT $ m1 `interleave` m2
 
 instance monadLogicMaybeT :: MonadLogic m => MonadLogic (MaybeT m) where
-  msplit (MaybeT m) = MaybeT $ msplit m <#> maybe
-    (Just Nothing) \(Tuple a m') -> map (\x -> Just (Tuple x (MaybeT m'))) a
+  msplit (MaybeT m) = MaybeT $ msplit m <#>
+    maybe (Just Nothing) \(Tuple a m') ->
+      map (\x -> Just (Tuple x (MaybeT m'))) a
   interleave (MaybeT m1) (MaybeT m2) = MaybeT $ m1 `interleave` m2
 
 instance monadLogicMealyT :: Monad f => MonadLogic (MealyT f s) where
@@ -75,14 +86,14 @@ instance monadLogicReaderT :: MonadLogic m => MonadLogic (ReaderT e m) where
   interleave (ReaderT m1) (ReaderT m2) = ReaderT $ lift2 interleave m1 m2
 
 instance monadLogicStateT :: MonadLogic m => MonadLogic (StateT s m) where
-  msplit (StateT m) = StateT \s -> msplit (m s) <#> maybe
-    (Tuple Nothing s) \(Tuple (Tuple a s') m') ->
+  msplit (StateT m) = StateT \s -> msplit (m s) <#>
+    maybe (Tuple Nothing s) \(Tuple (Tuple a s') m') ->
       Tuple (Just (Tuple a (StateT $ const m'))) s'
   interleave (StateT m1) (StateT m2) = StateT $ lift2 interleave m1 m2
 
 instance monadLogicWriterT :: (Monoid w, MonadLogic m) => MonadLogic (WriterT w m) where
-  msplit (WriterT m) = WriterT $ msplit m <#> maybe
-    (Tuple Nothing mempty) \(Tuple (Tuple a w) m') ->
+  msplit (WriterT m) = WriterT $ msplit m
+    <#> maybe (Tuple Nothing mempty) \(Tuple (Tuple a w) m') ->
       Tuple (Just (Tuple a (WriterT m'))) w
   interleave (WriterT m1) (WriterT m2) = WriterT $ m1 `interleave` m2
 
